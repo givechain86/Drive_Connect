@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { MapPin } from "lucide-react";
 import { fetchJob } from "@/lib/queries";
-import { getBrowserClient } from "@/lib/supabase/client";
+import { resolveBrowserClient } from "@/lib/supabase/client";
 import { shouldUseMockData } from "@/lib/config";
 import { useAuthStore } from "@/store/auth-store";
 import { useMockStore } from "@/store/mock-store";
@@ -29,6 +29,7 @@ export default function JobDetailPage() {
     "idle" | "loading" | "done" | "error"
   >("idle");
   const [msg, setMsg] = useState<string | null>(null);
+  const loginHref = `/login?next=${encodeURIComponent(`/jobs/${id}`)}`;
 
   useEffect(() => {
     void (async () => {
@@ -69,7 +70,7 @@ export default function JobDetailPage() {
       setMsg("Application sent.");
       return;
     }
-    const sb = getBrowserClient();
+    const sb = await resolveBrowserClient();
     if (!sb) {
       setApplyState("error");
       setMsg("Not configured.");
@@ -155,12 +156,15 @@ export default function JobDetailPage() {
               )}
             </>
           ) : (
-            <p className="text-sm text-zinc-500">
-              <Link href="/login" className="text-emerald-400">
-                Sign in as a driver
-              </Link>{" "}
-              to apply.
-            </p>
+            <>
+              <Link href={loginHref}>
+                <Button variant="secondary">Log in to apply</Button>
+              </Link>
+              <p className="text-sm text-zinc-500">
+                Job listings are public, but only signed-in driver accounts can
+                submit applications.
+              </p>
+            </>
           )}
         </div>
       </Card>

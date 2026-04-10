@@ -10,7 +10,7 @@ import {
   getMockEmployerId,
 } from "@/lib/queries";
 import { shouldUseMockData } from "@/lib/config";
-import { getBrowserClient } from "@/lib/supabase/client";
+import { resolveBrowserClient } from "@/lib/supabase/client";
 import { useAuthStore } from "@/store/auth-store";
 import { useMockStore } from "@/store/mock-store";
 import { mockDriverProfiles } from "@/lib/mock-data";
@@ -123,7 +123,7 @@ export function MessagesClient() {
       void reload();
       return;
     }
-    const sb = getBrowserClient();
+    const sb = await resolveBrowserClient();
     if (!sb) return;
     await sb.from("messages").insert({
       sender_id: profile.id,

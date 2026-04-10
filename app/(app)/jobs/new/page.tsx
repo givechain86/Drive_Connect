@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { getBrowserClient } from "@/lib/supabase/client";
+import { resolveBrowserClient } from "@/lib/supabase/client";
 import { shouldUseMockData } from "@/lib/config";
 import { useAuthStore } from "@/store/auth-store";
 import { mockJobs } from "@/lib/mock-data";
@@ -57,7 +57,7 @@ export default function NewJobPage() {
       setLoading(false);
       return;
     }
-    const sb = getBrowserClient();
+    const sb = await resolveBrowserClient();
     if (!sb) {
       setError("Supabase not configured.");
       setLoading(false);

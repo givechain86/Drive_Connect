@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
+import { loadEnvFromAppRoot } from "@/lib/env-bootstrap";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/config";
 
 export async function GET(request: Request) {
+  loadEnvFromAppRoot();
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
   const next = searchParams.get("next") ?? "/dashboard";

@@ -1,10 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { getBrowserClient } from "@/lib/supabase/client";
-import { shouldUseMockData } from "@/lib/config";
+import { resolveBrowserClient } from "@/lib/supabase/client";
 import { useAuthStore } from "@/store/auth-store";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,6 +14,7 @@ export function LoginClient() {
   const router = useRouter();
   const params = useSearchParams();
   const setMockPersona = useAuthStore((s) => s.setMockPersona);
+  const nextPath = params.get("next") || "/dashboard";
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -22,26 +22,32 @@ export function LoginClient() {
     params.get("error") ? "Something went wrong. Try again." : null
   );
   const [loading, setLoading] = useState(false);
+  const [showDemo, setShowDemo] = useState(false);
+
+  useEffect(() => {
+    void resolveBrowserClient().then((sb) => setShowDemo(!sb));
+  }, []);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     setLoading(true);
     try {
-      if (shouldUseMockData()) {
-        setError("Configure Supabase env vars, or use demo mode below.");
+      const sb = await resolveBrowserClient();
+      if (!sb) {
+        setError(
+          "Supabase is not available. Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY to driver-connect/.env.local, then stop and restart the dev server (npm run dev). Or use demo mode below."
+        );
         setLoading(false);
         return;
       }
-      const sb = getBrowserClient();
-      if (!sb) throw new Error("No client");
       const { error: err } = await sb.auth.signInWithPassword({ email, password });
       if (err) {
         setError(err.message);
         setLoading(false);
         return;
       }
-      router.push("/dashboard");
+      router.push(nextPath);
       router.refresh();
     } catch {
       setError("Sign-in failed.");
@@ -55,10 +61,16 @@ export function LoginClient() {
         <CardHeader>
           <CardTitle>Welcome back</CardTitle>
           <CardDescription>
-            Log in to DriverConnect with your email and password.
+            Log in to Drivers Job Hub with your email and password.
           </CardDescription>
         </CardHeader>
         <form onSubmit={onSubmit} className="flex flex-col gap-4 px-5 pb-6">
+          {params.get("registered") === "1" && (
+            <p className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-100">
+              Account created. If your project requires email confirmation, check
+              your inbox, then sign in.
+            </p>
+          )}
           {error && (
             <p className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-200">
               {error}
@@ -90,10 +102,10 @@ export function LoginClient() {
             {loading ? "Signing in…" : "Sign in"}
           </Button>
         </form>
-        {shouldUseMockData() && (
+        {showDemo && (
           <div className="border-t border-zinc-800 px-5 py-4">
             <p className="mb-3 text-xs text-zinc-500">
-              No Supabase keys detected — explore the UI with mock personas:
+              No Supabase client in the browser — explore the UI with mock personas, or fix env and restart dev:
             </p>
             <div className="flex flex-wrap gap-2">
               <Button
@@ -102,7 +114,7 @@ export function LoginClient() {
                 size="sm"
                 onClick={() => {
                   setMockPersona("driver");
-                  router.push("/dashboard");
+                  router.push(nextPath);
                 }}
               >
                 Demo as driver
@@ -113,7 +125,7 @@ export function LoginClient() {
                 size="sm"
                 onClick={() => {
                   setMockPersona("employer");
-                  router.push("/dashboard");
+                  router.push(nextPath);
                 }}
               >
                 Demo as employer

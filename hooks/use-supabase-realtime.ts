@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect } from "react";
-import { getBrowserClient } from "@/lib/supabase/client";
+import type { RealtimeChannel } from "@supabase/supabase-js";
+import { resolveBrowserClient } from "@/lib/supabase/client";
 import { shouldUseMockData } from "@/lib/config";
 
 export function useMessagesRealtime(
@@ -10,35 +11,48 @@ export function useMessagesRealtime(
 ) {
   useEffect(() => {
     if (shouldUseMockData() || !userId) return;
-    const sb = getBrowserClient();
-    if (!sb) return;
+    let cancelled = false;
+    let channel: RealtimeChannel | null = null;
 
-    const ch = sb
-      .channel(`messages-${userId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "messages",
-          filter: `receiver_id=eq.${userId}`,
-        },
-        () => onEvent()
-      )
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "messages",
-          filter: `sender_id=eq.${userId}`,
-        },
-        () => onEvent()
-      )
-      .subscribe();
+    void (async () => {
+      const sb = await resolveBrowserClient();
+      if (cancelled || !sb) return;
+      const ch = sb
+        .channel(`messages-${userId}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "INSERT",
+            schema: "public",
+            table: "messages",
+            filter: `receiver_id=eq.${userId}`,
+          },
+          () => onEvent()
+        )
+        .on(
+          "postgres_changes",
+          {
+            event: "INSERT",
+            schema: "public",
+            table: "messages",
+            filter: `sender_id=eq.${userId}`,
+          },
+          () => onEvent()
+        )
+        .subscribe();
+      if (cancelled) {
+        void sb.removeChannel(ch);
+        return;
+      }
+      channel = ch;
+    })();
 
     return () => {
-      void sb.removeChannel(ch);
+      cancelled = true;
+      void (async () => {
+        const sb = await resolveBrowserClient();
+        if (channel && sb) void sb.removeChannel(channel);
+      })();
     };
   }, [userId, onEvent]);
 }
@@ -49,35 +63,48 @@ export function useNotificationsRealtime(
 ) {
   useEffect(() => {
     if (shouldUseMockData() || !userId) return;
-    const sb = getBrowserClient();
-    if (!sb) return;
+    let cancelled = false;
+    let channel: RealtimeChannel | null = null;
 
-    const ch = sb
-      .channel(`notif-${userId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "notifications",
-          filter: `user_id=eq.${userId}`,
-        },
-        () => onEvent()
-      )
-      .on(
-        "postgres_changes",
-        {
-          event: "UPDATE",
-          schema: "public",
-          table: "notifications",
-          filter: `user_id=eq.${userId}`,
-        },
-        () => onEvent()
-      )
-      .subscribe();
+    void (async () => {
+      const sb = await resolveBrowserClient();
+      if (cancelled || !sb) return;
+      const ch = sb
+        .channel(`notif-${userId}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "INSERT",
+            schema: "public",
+            table: "notifications",
+            filter: `user_id=eq.${userId}`,
+          },
+          () => onEvent()
+        )
+        .on(
+          "postgres_changes",
+          {
+            event: "UPDATE",
+            schema: "public",
+            table: "notifications",
+            filter: `user_id=eq.${userId}`,
+          },
+          () => onEvent()
+        )
+        .subscribe();
+      if (cancelled) {
+        void sb.removeChannel(ch);
+        return;
+      }
+      channel = ch;
+    })();
 
     return () => {
-      void sb.removeChannel(ch);
+      cancelled = true;
+      void (async () => {
+        const sb = await resolveBrowserClient();
+        if (channel && sb) void sb.removeChannel(channel);
+      })();
     };
   }, [userId, onEvent]);
 }

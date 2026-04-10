@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   Bell,
   Briefcase,
+  Building2,
   LayoutDashboard,
   LogOut,
   Map,
@@ -14,14 +15,16 @@ import {
   Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { SITE_MONOGRAM, SITE_NAME } from "@/lib/brand";
 import { useAuthStore } from "@/store/auth-store";
-import { getBrowserClient } from "@/lib/supabase/client";
+import { resolveBrowserClient } from "@/lib/supabase/client";
 import { shouldUseMockData } from "@/lib/config";
 import { Button } from "@/components/ui/button";
 
 const driverLinks = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/jobs", label: "Jobs", icon: Briefcase },
+  { href: "/employers", label: "Companies", icon: Building2 },
   { href: "/map", label: "Map", icon: Map },
   { href: "/messages", label: "Chat", icon: MessageCircle },
   { href: "/notifications", label: "Alerts", icon: Bell },
@@ -31,6 +34,7 @@ const driverLinks = [
 const employerLinks = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/jobs", label: "Job posts", icon: Briefcase },
+  { href: "/employers", label: "Companies", icon: Building2 },
   { href: "/hiring", label: "Hiring", icon: Users },
   { href: "/drivers", label: "Drivers", icon: Truck },
   { href: "/map", label: "Map", icon: Map },
@@ -50,10 +54,10 @@ export function MainNav() {
   async function handleSignOut() {
     clearSession();
     if (!shouldUseMockData()) {
-      const sb = getBrowserClient();
+      const sb = await resolveBrowserClient();
       await sb?.auth.signOut();
     }
-    window.location.href = "/login";
+    window.location.href = "/";
   }
 
   if (!profile) return null;
@@ -66,10 +70,10 @@ export function MainNav() {
             href="/dashboard"
             className="flex items-center gap-2 text-lg font-semibold tracking-tight text-white"
           >
-            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-400 to-teal-600 text-zinc-950">
-              DC
+            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-400 to-teal-600 text-[10px] font-bold leading-none text-zinc-950">
+              {SITE_MONOGRAM}
             </span>
-            DriverConnect
+            {SITE_NAME}
           </Link>
           {mockMode && (
             <span className="hidden rounded-lg border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-xs text-amber-200 sm:inline">

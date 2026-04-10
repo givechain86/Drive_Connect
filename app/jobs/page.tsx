@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { MapPin, Sun, Moon, Clock } from "lucide-react";
 import { fetchJobs } from "@/lib/queries";
+import { useAuthStore } from "@/store/auth-store";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -17,8 +18,11 @@ function shiftIcon(shift: JobShift) {
 }
 
 export default function JobsPage() {
+  const user = useAuthStore((s) => s.user);
+  const profile = useAuthStore((s) => s.profile);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
+  const signedIn = Boolean(user && profile);
 
   useEffect(() => {
     void (async () => {
@@ -31,22 +35,31 @@ export default function JobsPage() {
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
       <div className="mb-8 animate-fade-in">
-        <Link
-          href="/"
-          className="mb-4 inline-block text-sm text-emerald-400 hover:underline"
-        >
-          ← Home
-        </Link>
+        {!signedIn && (
+          <Link
+            href="/"
+            className="mb-4 inline-block text-sm text-emerald-400 hover:underline"
+          >
+            ← Home
+          </Link>
+        )}
         <h1 className="text-3xl font-bold text-white">Open positions</h1>
         <p className="mt-2 text-zinc-400">
-          CDL and commercial driving roles from fleets on DriverConnect.
+          CDL and commercial driving roles from fleets on Drivers Job Hub.
         </p>
-        <div className="mt-4">
-          <Link href="/login">
-            <Button size="sm" variant="secondary">
-              Sign in to apply
+        <div className="mt-4 flex flex-wrap gap-2">
+          <Link href="/employers">
+            <Button size="sm" variant="ghost" className="text-zinc-300">
+              Browse companies
             </Button>
           </Link>
+          {!signedIn && (
+            <Link href="/login">
+              <Button size="sm" variant="secondary">
+                Sign in to apply
+              </Button>
+            </Link>
+          )}
         </div>
       </div>
       {loading ? (

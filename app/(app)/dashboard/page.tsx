@@ -10,12 +10,15 @@ import {
   Users,
 } from "lucide-react";
 import { useAuthStore } from "@/store/auth-store";
+import { RateEmployerPanel } from "@/components/rating/rate-employer-panel";
 import {
   fetchDrivers,
   fetchEmployerApplications,
+  fetchEmployerDisplayNames,
   fetchJobs,
   fetchMyApplications,
 } from "@/lib/queries";
+import { fetchMyEmployerRatingForEmployer } from "@/lib/ratings";
 import { useMockStore } from "@/store/mock-store";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -31,6 +34,12 @@ export default function DashboardPage() {
   const [employerApps, setEmployerApps] = useState<Application[]>([]);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [views, setViews] = useState(0);
+  const [employerLabels, setEmployerLabels] = useState<Map<string, string>>(
+    new Map()
+  );
+  const [employerRatingsByMe, setEmployerRatingsByMe] = useState<
+    Map<string, { score: number; comment: string | null } | null>
+  >(new Map());
 
   useEffect(() => {
     if (!profile) return;
@@ -46,6 +55,26 @@ export default function DashboardPage() {
         const drivers = await fetchDrivers();
         const me = drivers.find((d) => d.user_id === profile.id);
         setViews(me?.profile_views ?? 0);
+        const accepted = apps.filter(
+          (a) => a.status === "accepted" && a.job?.employer_id
+        );
+        const eids = [
+          ...new Set(
+            accepted.map((a) => a.job!.employer_id).filter(Boolean)
+          ),
+        ] as string[];
+        const labels = await fetchEmployerDisplayNames(eids);
+        setEmployerLabels(labels);
+        const ratingPairs = await Promise.all(
+          eids.map(async (eid) => {
+            const r = await fetchMyEmployerRatingForEmployer(
+              profile.id,
+              eid
+            );
+            return [eid, r] as const;
+          })
+        );
+        setEmployerRatingsByMe(new Map(ratingPairs));
       } else {
         const apps = await fetchEmployerApplications(profile.id);
         setEmployerApps(apps);
@@ -130,15 +159,44 @@ export default function DashboardPage() {
             {myApps.slice(0, 6).map((a) => (
               <li
                 key={a.id}
-                className="flex items-center justify-between gap-4 py-3"
+                className="flex flex-col gap-2 border-b border-zinc-800/80 py-3 last:border-0 sm:flex-row sm:items-start sm:justify-between"
               >
-                <div>
+                <div className="min-w-0 flex-1">
                   <p className="font-medium text-white">
                     {a.job?.title ?? "Job"}
                   </p>
                   <p className="text-xs text-zinc-500">
                     {a.job?.location}
+                    {a.job?.employer_id && (
+                      <>
+                        {" · "}
+                        {employerLabels.get(a.job.employer_id) ?? "Company"}
+                      </>
+                    )}
                   </p>
+                  {a.status === "accepted" && a.job?.employer_id && (
+                    <RateEmployerPanel
+                      driverId={profile.id}
+                      employerId={a.job.employer_id}
+                      companyLabel={
+                        employerLabels.get(a.job.employer_id) ?? "Employer"
+                      }
+                      initial={
+                        employerRatingsByMe.get(a.job.employer_id) ?? null
+                      }
+                      onSaved={async () => {
+                        const r = await fetchMyEmployerRatingForEmployer(
+                          profile.id,
+                          a.job!.employer_id
+                        );
+                        setEmployerRatingsByMe((prev) => {
+                          const next = new Map(prev);
+                          next.set(a.job!.employer_id, r);
+                          return next;
+                        });
+                      }}
+                    />
+                  )}
                 </div>
                 <Badge
                   variant={
@@ -148,6 +206,7 @@ export default function DashboardPage() {
                         ? "danger"
                         : "warning"
                   }
+                  className="shrink-0 self-start"
                 >
                   {a.status}
                 </Badge>

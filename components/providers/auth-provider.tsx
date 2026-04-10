@@ -1,14 +1,19 @@
 "use client";
 
-import { useEffect } from "react";
-import { getBrowserClient } from "@/lib/supabase/client";
-import { shouldUseMockData } from "@/lib/config";
+import { useEffect, useRef } from "react";
+import type {
+  AuthChangeEvent,
+  SupabaseClient,
+  User,
+} from "@supabase/supabase-js";
+import { resolveBrowserClient } from "@/lib/supabase/client";
 import { useAuthStore } from "@/store/auth-store";
 import type { Profile } from "@/types";
 
-async function fetchProfile(userId: string): Promise<Profile | null> {
-  const supabase = getBrowserClient();
-  if (!supabase) return null;
+async function fetchProfile(
+  supabase: SupabaseClient,
+  userId: string
+): Promise<Profile | null> {
   const { data, error } = await supabase
     .from("profiles")
     .select("id,email,role,full_name,created_at")
@@ -18,60 +23,81 @@ async function fetchProfile(userId: string): Promise<Profile | null> {
   return data as Profile;
 }
 
+/** Reuse store profile for this user when a refetch returns null (transient RLS/network). */
+function profileForUser(user: User, fetched: Profile | null): Profile | null {
+  if (fetched) return fetched;
+  const { user: u, profile: p } = useAuthStore.getState();
+  if (u?.id === user.id && p?.id === user.id) return p;
+  return null;
+}
+
+function shouldClearSession(event: AuthChangeEvent): boolean {
+  return event === "SIGNED_OUT";
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const setSession = useAuthStore((s) => s.setSession);
-  const clearSession = useAuthStore((s) => s.clearSession);
+  const subRef = useRef<{ unsubscribe: () => void } | null>(null);
 
   useEffect(() => {
-    if (shouldUseMockData()) {
-      useAuthStore.setState((s) => ({
-        initialized: true,
-        mockMode: true,
-        user: s.user,
-        profile: s.profile,
-      }));
-      return;
-    }
-
-    const supabase = getBrowserClient();
-    if (!supabase) {
-      setSession(null, null, false);
-      return;
-    }
-
     let cancelled = false;
+    const { mockMode, user: mockUser } = useAuthStore.getState();
+    if (mockMode && mockUser) {
+      useAuthStore.setState({ initialized: true });
+      return;
+    }
 
-    const sync = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+    void (async () => {
+      const supabase = await resolveBrowserClient();
       if (cancelled) return;
-      if (!user) {
+
+      if (!supabase) {
         setSession(null, null, false);
         return;
       }
-      const profile = await fetchProfile(user.id);
-      setSession(user, profile, false);
-    };
 
-    void sync();
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      void (async () => {
-        if (!session?.user) {
+      const sync = async () => {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        if (cancelled) return;
+        if (!user) {
           setSession(null, null, false);
           return;
         }
-        const profile = await fetchProfile(session.user.id);
-        setSession(session.user, profile, false);
-      })();
-    });
+        const fetched = await fetchProfile(supabase, user.id);
+        if (cancelled) return;
+        setSession(user, profileForUser(user, fetched), false);
+      };
+
+      await sync();
+
+      const {
+        data: { subscription },
+      } = supabase.auth.onAuthStateChange((event, session) => {
+        void (async () => {
+          if (!session?.user) {
+            if (shouldClearSession(event)) {
+              setSession(null, null, false);
+            }
+            return;
+          }
+          const fetched = await fetchProfile(supabase, session.user.id);
+          setSession(
+            session.user,
+            profileForUser(session.user, fetched),
+            false
+          );
+        })();
+      });
+
+      subRef.current = subscription;
+    })();
 
     return () => {
       cancelled = true;
-      subscription.unsubscribe();
+      subRef.current?.unsubscribe();
+      subRef.current = null;
     };
   }, [setSession]);
 

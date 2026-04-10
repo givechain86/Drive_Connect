@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getBrowserClient } from "@/lib/supabase/client";
+import { resolveBrowserClient } from "@/lib/supabase/client";
 import { shouldUseMockData } from "@/lib/config";
 import { useAuthStore } from "@/store/auth-store";
 import { mockDriverProfiles, mockEmployerProfiles } from "@/lib/mock-data";
@@ -27,6 +27,12 @@ export default function ProfilePage() {
   const [lng, setLng] = useState("");
   const [experience, setExperience] = useState("0");
   const [license, setLicense] = useState("");
+  const [cdlClass, setCdlClass] = useState("");
+  const [endorsementsInput, setEndorsementsInput] = useState("");
+  const [milesDriven, setMilesDriven] = useState("");
+  const [backgroundCheck, setBackgroundCheck] = useState(false);
+  const [relocate, setRelocate] = useState(false);
+  const [availFrom, setAvailFrom] = useState("");
   const [available, setAvailable] = useState(true);
   const [companyName, setCompanyName] = useState("");
   const [companyDesc, setCompanyDesc] = useState("");
@@ -44,6 +50,12 @@ export default function ProfilePage() {
           setLng(d.lng != null ? String(d.lng) : "");
           setExperience(String(d.experience_years));
           setLicense(d.license_type ?? "");
+          setCdlClass(d.cdl_class ?? "");
+          setEndorsementsInput((d.endorsements ?? []).join(", "));
+          setMilesDriven(d.miles_driven != null ? String(d.miles_driven) : "");
+          setBackgroundCheck(d.background_check_verified ?? false);
+          setRelocate(d.willing_to_relocate ?? false);
+          setAvailFrom(d.availability_starts_at ?? "");
           setAvailable(d.availability);
         }
       } else {
@@ -55,9 +67,9 @@ export default function ProfilePage() {
       }
       return;
     }
-    const sb = getBrowserClient();
-    if (!sb) return;
     void (async () => {
+      const sb = await resolveBrowserClient();
+      if (!sb) return;
       if (profile.role === "driver") {
         const { data } = await sb
           .from("driver_profiles")
@@ -71,6 +83,16 @@ export default function ProfilePage() {
           setLng(data.lng != null ? String(data.lng) : "");
           setExperience(String(data.experience_years ?? 0));
           setLicense(data.license_type ?? "");
+          setCdlClass(data.cdl_class ?? "");
+          setEndorsementsInput(
+            Array.isArray(data.endorsements) ? data.endorsements.join(", ") : ""
+          );
+          setMilesDriven(
+            data.miles_driven != null ? String(data.miles_driven) : ""
+          );
+          setBackgroundCheck(data.background_check_verified ?? false);
+          setRelocate(data.willing_to_relocate ?? false);
+          setAvailFrom(data.availability_starts_at ?? "");
           setAvailable(data.availability ?? true);
         }
       } else {
@@ -103,6 +125,17 @@ export default function ProfilePage() {
           d.lng = lng ? parseFloat(lng) : null;
           d.experience_years = parseInt(experience, 10) || 0;
           d.license_type = license;
+          d.cdl_class = cdlClass || null;
+          d.endorsements = endorsementsInput
+            .split(/[,;]/)
+            .map((s) => s.trim())
+            .filter(Boolean);
+          d.miles_driven = milesDriven.trim()
+            ? parseInt(milesDriven, 10) || 0
+            : null;
+          d.background_check_verified = backgroundCheck;
+          d.willing_to_relocate = relocate;
+          d.availability_starts_at = availFrom.trim() || null;
           d.availability = available;
           d.profile.full_name = fullName;
         }
@@ -119,7 +152,7 @@ export default function ProfilePage() {
       return;
     }
 
-    const sb = getBrowserClient();
+    const sb = await resolveBrowserClient();
     if (!sb) return;
 
     await sb
@@ -128,6 +161,10 @@ export default function ProfilePage() {
       .eq("id", profile.id);
 
     if (profile.role === "driver") {
+      const endorsements = endorsementsInput
+        .split(/[,;]/)
+        .map((s) => s.trim())
+        .filter(Boolean);
       await sb.from("driver_profiles").upsert({
         user_id: profile.id,
         phone,
@@ -136,6 +173,14 @@ export default function ProfilePage() {
         lng: lng ? parseFloat(lng) : null,
         experience_years: parseInt(experience, 10) || 0,
         license_type: license,
+        cdl_class: cdlClass || null,
+        endorsements,
+        miles_driven: milesDriven.trim()
+          ? parseInt(milesDriven, 10) || null
+          : null,
+        background_check_verified: backgroundCheck,
+        willing_to_relocate: relocate,
+        availability_starts_at: availFrom.trim() || null,
         availability: available,
       });
     } else {
@@ -159,7 +204,7 @@ export default function ProfilePage() {
       setSaved(true);
       return;
     }
-    const sb = getBrowserClient();
+    const sb = await resolveBrowserClient();
     if (!sb) {
       setError("Upload requires Supabase Storage bucket `cvs`.");
       return;
@@ -189,7 +234,7 @@ export default function ProfilePage() {
         <p className="text-zinc-400">
           {profile.role === "driver"
             ? "What employers see when you apply."
-            : "Your company on DriverConnect."}
+            : "Your company on Drivers Job Hub."}
         </p>
         <Badge variant="info" className="mt-2 capitalize">
           {profile.role}
@@ -276,6 +321,68 @@ export default function ProfilePage() {
                   value={license}
                   onChange={(e) => setLicense(e.target.value)}
                   placeholder="CDL Class A"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="cdl">CDL class</Label>
+                <select
+                  id="cdl"
+                  value={cdlClass}
+                  onChange={(e) => setCdlClass(e.target.value)}
+                  className="flex h-11 w-full rounded-xl border border-zinc-700 bg-zinc-950/60 px-4 text-sm text-zinc-100"
+                >
+                  <option value="">Not set</option>
+                  <option value="A">Class A</option>
+                  <option value="B">Class B</option>
+                  <option value="C">Class C</option>
+                </select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="end">Endorsements</Label>
+                <Input
+                  id="end"
+                  value={endorsementsInput}
+                  onChange={(e) => setEndorsementsInput(e.target.value)}
+                  placeholder="Hazmat, Tanker, Doubles"
+                />
+                <p className="text-xs text-zinc-500">Comma-separated</p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="miles">Miles driven (lifetime)</Label>
+                <Input
+                  id="miles"
+                  type="number"
+                  min={0}
+                  value={milesDriven}
+                  onChange={(e) => setMilesDriven(e.target.value)}
+                  placeholder="420000"
+                />
+              </div>
+              <label className="flex cursor-pointer items-center gap-3 text-sm text-zinc-300">
+                <input
+                  type="checkbox"
+                  checked={backgroundCheck}
+                  onChange={(e) => setBackgroundCheck(e.target.checked)}
+                  className="h-4 w-4 rounded border-zinc-600"
+                />
+                Background check verified
+              </label>
+              <label className="flex cursor-pointer items-center gap-3 text-sm text-zinc-300">
+                <input
+                  type="checkbox"
+                  checked={relocate}
+                  onChange={(e) => setRelocate(e.target.checked)}
+                  className="h-4 w-4 rounded border-zinc-600"
+                />
+                Willing to relocate
+              </label>
+              <div className="space-y-2">
+                <Label htmlFor="availFrom">Available from (optional)</Label>
+                <Input
+                  id="availFrom"
+                  type="date"
+                  value={availFrom}
+                  onChange={(e) => setAvailFrom(e.target.value)}
                 />
               </div>
               <label className="flex cursor-pointer items-center gap-3 text-sm text-zinc-300">

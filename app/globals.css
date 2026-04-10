@@ -45,3 +45,41 @@ body {
   font-family: inherit;
   border-radius: 1rem;
 }
+
+/* Landing map preview pins */
+.landing-pin {
+  width: 14px;
+  height: 14px;
+  border-radius: 9999px;
+  border: 2px solid #fafafa;
+  box-sizing: border-box;
+}
+.landing-pin-driver {
+  background: #10b981;
+  box-shadow: 0 0 14px rgba(16, 185, 129, 0.65);
+}
+.landing-pin-job {
+  background: #f59e0b;
+  box-shadow: 0 0 14px rgba(245, 158, 11, 0.55);
+}
+
+.landing-card-hover {
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.25s ease,
+    border-color 0.2s ease;
+}
+.landing-card-hover:hover {
+  transform: translateY(-2px);
+}
+
+.cta-glow {
+  box-shadow:
+    0 0 0 1px rgba(16, 185, 129, 0.25),
+    0 8px 32px -8px rgba(16, 185, 129, 0.45);
+}
+.cta-glow:hover {
+  box-shadow:
+    0 0 0 1px rgba(16, 185, 129, 0.4),
+    0 12px 40px -6px rgba(16, 185, 129, 0.55);
+}

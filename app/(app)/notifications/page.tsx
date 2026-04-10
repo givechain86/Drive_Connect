@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { fetchNotifications } from "@/lib/queries";
 import { shouldUseMockData } from "@/lib/config";
-import { getBrowserClient } from "@/lib/supabase/client";
+import { resolveBrowserClient } from "@/lib/supabase/client";
 import { useAuthStore } from "@/store/auth-store";
 import { useMockStore } from "@/store/mock-store";
 import { useRealtimeNotifications } from "@/hooks/use-realtime-notifications";
@@ -41,7 +41,7 @@ export default function NotificationsPage() {
       void reload();
       return;
     }
-    const sb = getBrowserClient();
+    const sb = await resolveBrowserClient();
     if (!sb) return;
     await sb.from("notifications").update({ read: true }).eq("id", n.id);
     void reload();

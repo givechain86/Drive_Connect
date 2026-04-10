@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { loadEnvFromAppRoot } from "@/lib/env-bootstrap";
 import {
   getSupabaseAnonKey,
   getSupabaseUrl,
@@ -7,6 +8,7 @@ import {
 } from "@/lib/config";
 
 export async function createClient() {
+  loadEnvFromAppRoot();
   const url = getSupabaseUrl();
   const key = getSupabaseAnonKey();
   if (!url || !key || !isValidSupabaseUrl(url)) {

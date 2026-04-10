@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { getBrowserClient } from "@/lib/supabase/client";
+import { resolveBrowserClient } from "@/lib/supabase/client";
 import { shouldUseMockData } from "@/lib/config";
 import type { UserRole } from "@/types";
 import { useAuthStore } from "@/store/auth-store";
@@ -40,26 +40,35 @@ export default function OnboardingPage() {
     }
     setLoading(true);
     try {
-      const sb = getBrowserClient();
+      const sb = await resolveBrowserClient();
       if (!sb) throw new Error("No client");
-      const { error: pErr } = await sb.from("profiles").insert({
-        id: user.id,
-        email: user.email,
-        role,
-        full_name: fullName || null,
-      });
+      const { error: pErr } = await sb.from("profiles").upsert(
+        {
+          id: user.id,
+          email: user.email,
+          role,
+          full_name: fullName || null,
+        },
+        { onConflict: "id" }
+      );
       if (pErr) {
         setError(pErr.message);
         setLoading(false);
         return;
       }
       if (role === "driver") {
-        await sb.from("driver_profiles").insert({ user_id: user.id });
+        await sb.from("driver_profiles").upsert(
+          { user_id: user.id },
+          { onConflict: "user_id" }
+        );
       } else {
-        await sb.from("employer_profiles").insert({
-          user_id: user.id,
-          company_name: companyName || fullName || "Company",
-        });
+        await sb.from("employer_profiles").upsert(
+          {
+            user_id: user.id,
+            company_name: companyName || fullName || "Company",
+          },
+          { onConflict: "user_id" }
+        );
       }
       const newProfile = {
         id: user.id,
@@ -83,7 +92,7 @@ export default function OnboardingPage() {
         <CardHeader>
           <CardTitle>Finish setup</CardTitle>
           <CardDescription>
-            Tell us how you will use DriverConnect.
+            Tell us how you will use Drivers Job Hub.
           </CardDescription>
         </CardHeader>
         <form onSubmit={onSubmit} className="flex flex-col gap-4 px-5 pb-6">

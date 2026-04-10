@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { fetchEmployerApplications } from "@/lib/queries";
 import { shouldUseMockData } from "@/lib/config";
-import { getBrowserClient } from "@/lib/supabase/client";
+import { resolveBrowserClient } from "@/lib/supabase/client";
 import { useAuthStore } from "@/store/auth-store";
 import { useMockStore } from "@/store/mock-store";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -38,7 +38,7 @@ export default function HiringPage() {
       setBusy(null);
       return;
     }
-    const sb = getBrowserClient();
+    const sb = await resolveBrowserClient();
     if (!sb) {
       setBusy(null);
       return;

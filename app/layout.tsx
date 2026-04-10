@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { AuthProvider } from "@/components/providers/auth-provider";
+import { SITE_DOMAIN, SITE_NAME, SITE_TAGLINE } from "@/lib/brand";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -14,9 +15,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "DriverConnect — Drivers meet employers",
-  description:
-    "Marketplace connecting professional drivers with companies hiring CDL and delivery talent.",
+  metadataBase: new URL(`https://${SITE_DOMAIN}`),
+  title: `${SITE_NAME} — ${SITE_TAGLINE}`,
+  description: `Hire drivers or find CDL and commercial driving jobs. ${SITE_DOMAIN}`,
 };
 
 export default function RootLayout({
@@ -27,7 +28,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased dark`}
+      className={`${geistSans.variable} ${geistMono.variable} h-full scroll-smooth antialiased dark`}
     >
       <body className="flex min-h-full flex-col bg-zinc-950 text-zinc-100">
         <AuthProvider>{children}</AuthProvider>
