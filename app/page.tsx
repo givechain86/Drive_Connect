@@ -15,6 +15,7 @@ import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/ca
 import { LandingDriverCard } from "@/components/landing/landing-driver-card";
 import { LandingJobCard } from "@/components/landing/landing-job-card";
 import { MapPreview } from "@/components/landing/map-preview";
+import { DemoBetaBar } from "@/components/demo/demo-beta-bar";
 import { SITE_DOMAIN, SITE_MONOGRAM, SITE_NAME } from "@/lib/brand";
 import {
   getLandingDriverPreviews,
@@ -30,6 +31,7 @@ export default function HomePage() {
 
   return (
     <div className="flex flex-1 flex-col">
+      <DemoBetaBar />
       <header className="sticky top-0 z-50 border-b border-zinc-800/80 bg-zinc-950/85 backdrop-blur-md">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-3 px-4 sm:px-6">
           <Link href="/" className="flex shrink-0 items-center gap-2 text-lg font-semibold text-white">

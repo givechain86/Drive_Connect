@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { DemoBetaBar } from "@/components/demo/demo-beta-bar";
 
 export function LoginClient() {
   const router = useRouter();
@@ -57,6 +58,9 @@ export function LoginClient() {
 
   return (
     <div className="flex min-h-full flex-1 flex-col items-center justify-center px-4 py-16">
+      <div className="mb-4 w-full max-w-md">
+        <DemoBetaBar />
+      </div>
       <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle>Welcome back</CardTitle>

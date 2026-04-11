@@ -37,16 +37,16 @@ export default function DriversPage() {
 
   if (loading) {
     return (
-      <div className="grid gap-4 sm:grid-cols-2">
-        {[1, 2, 3, 4].map((i) => (
-          <DriverProfileCardSkeleton key={i} />
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {[1, 2, 3, 4, 5, 6].map((i) => (
+          <DriverProfileCardSkeleton key={i} variant="compact" />
         ))}
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-4 animate-fade-in">
       <div>
         <Link
           href="/"
@@ -77,10 +77,11 @@ export default function DriversPage() {
           </Link>
         </div>
       </div>
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {drivers.map((d, i) => (
           <DriverProfileCard
             key={d.user_id}
+            variant="compact"
             driverId={d.user_id}
             fullName={d.profile.full_name ?? "Driver"}
             location={d.location_name}

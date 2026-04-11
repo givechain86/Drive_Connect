@@ -4,31 +4,21 @@ import type { Job } from "@/types";
 /** Reference point for “miles away” on the landing page (downtown SF). */
 export const LANDING_MAP_CENTER = { lat: 37.7749, lng: -122.4194 };
 
-function toRad(d: number): number {
-  return (d * Math.PI) / 180;
-}
-
-/** Great-circle distance in miles. */
-export function milesBetween(
-  lat1: number,
-  lon1: number,
-  lat2: number,
-  lon2: number
-): number {
-  const R = 3958.8; // Earth radius in miles
-  const dLat = toRad(lat2 - lat1);
-  const dLon = toRad(lon2 - lon1);
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(toRad(lat1)) *
-      Math.cos(toRad(lat2)) *
-      Math.sin(dLon / 2) *
-      Math.sin(dLon / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c;
-}
-
-const ILLUSTRATIVE_RATINGS = [4.9, 4.8, 5.0, 4.7, 4.85];
+/**
+ * Curated landing cards: names/locations/availability come from `mockDriverProfiles`;
+ * miles and ratings are fixed for a polished marketing preview.
+ */
+const LANDING_DRIVER_SHOWCASE: {
+  distanceMiles: number;
+  rating: number;
+  topRated: boolean;
+}[] = [
+  { distanceMiles: 8.3, rating: 4.9, topRated: true },
+  { distanceMiles: 42, rating: 4.8, topRated: false },
+  { distanceMiles: 0, rating: 5.0, topRated: true },
+  { distanceMiles: 10.4, rating: 4.7, topRated: false },
+  { distanceMiles: 27.5, rating: 4.8, topRated: false },
+];
 
 export type LandingDriverPreview = {
   userId: string;
@@ -41,19 +31,18 @@ export type LandingDriverPreview = {
 };
 
 export function getLandingDriverPreviews(): LandingDriverPreview[] {
-  const { lat: clat, lng: clng } = LANDING_MAP_CENTER;
-  return mockDriverProfiles.map((d, i) => ({
-    userId: d.user_id,
-    fullName: d.profile.full_name ?? "Driver",
-    location: d.location_name,
-    available: d.availability,
-    rating: ILLUSTRATIVE_RATINGS[i] ?? 4.8,
-    distanceMiles:
-      d.lat != null && d.lng != null ?
-        Math.round(milesBetween(clat, clng, d.lat, d.lng) * 10) / 10
-      : 0,
-    topRated: i === 0 || i === 2,
-  }));
+  return mockDriverProfiles.map((d, i) => {
+    const s = LANDING_DRIVER_SHOWCASE[i];
+    return {
+      userId: d.user_id,
+      fullName: d.profile.full_name ?? "Driver",
+      location: d.location_name,
+      available: d.availability,
+      rating: s?.rating ?? 4.8,
+      distanceMiles: s?.distanceMiles ?? 0,
+      topRated: s?.topRated ?? false,
+    };
+  });
 }
 
 export function getLandingJobPreviews(): Job[] {
